@@ -216,3 +216,29 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Java / Spring
+*.class
+target/
+build/
+.gradle/
+*.jar
+*.war
+
+# Node / React
+node_modules/
+dist/
+.vite/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# AI artifacts
+*.pt
+*.onnx
+runs/
+mlruns/
+.env
