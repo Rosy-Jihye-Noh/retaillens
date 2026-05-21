@@ -112,6 +112,18 @@ uvicorn main:app --reload --port 8000
     }
   ]
 }
+
+
+{
+  "job_id": "...",
+  "status": "DONE",
+  "visitors": [ ... ],
+  "heatmap": {
+    "grid_width": 32,
+    "grid_height": 18,
+    "data": [[0.01, 0.02, ...], ...]
+  }
+}
 ```
 
 ## 핵심 분석 로직 (`analyzer.py`)
@@ -126,6 +138,7 @@ PRD §6.5에서 정의한 5종 로직을 구현:
 | **ROI Dwell** | 사용자 정의 직사각형(`roi_ratio`) 안에서 머문 누적 프레임 → 초로 환산 |
 | **Estimated Purchase** | `visited_checkout AND checkout_dwell ≥ checkout_min_dwell_sec` (default 3.0s) |
 | **Trajectory 샘플링** | 모든 프레임이 아닌 **1초당 1점**만 저장 → DB JSONB 용량 절감 |
+| **Heatmap 생성** | 모든 trajectory의 (x,y) 누적 → GaussianBlur → 32×18 그리드로 다운샘플링한 JSON 반환 |
 
 ### 주요 파라미터 (조정 가능)
 
@@ -153,9 +166,25 @@ analyze_video(
 - **Trajectory 1초 샘플링**: 5 FPS × 60초 × 5명 = 1,500점이 아니라 60점 정도로 압축 → DB·네트워크 부담 최소
 - **CCTV 하이앵글 가정**: 얼굴 모델(MiVOLO/DeepFace)은 P3 옵션으로 분리. 본 모듈은 trajectory 분석에 집중
 
-## 다음 단계 (P1B Day 4)
 
-- [ ] Heatmap 좌표 누적 → Spring 통계 API에서 시각화 데이터 노출
-- [ ] 인구통계 ID별 캐싱 (P3 — MiVOLO/DeepFace)
+## 배포 (HuggingFace Spaces)
+
+Docker SDK 기반으로 배포. `Dockerfile` + README frontmatter(`sdk: docker`, `app_port: 7860`)로 자동 빌드.
+
+- 배포 URL: https://rosyhey-retaillens-ai-server.hf.space
+- 헬스체크: `/health`, API 문서: `/docs`
+- 하드웨어: CPU basic (무료), 영구 스토리지 없음 (모델은 시작 시 자동 다운로드)
+- 모델 yolov8n.pt는 repo에 포함하지 않고 런타임 자동 다운로드
+
+## 진행 현황 및 로드맵
+
+### 완료 (P1)
+- [x] YOLOv8 + BoT-SORT 추적 파이프라인
+- [x] Virtual Line Crossing / ROI Dwell / Estimated Purchase 로직
+- [x] Heatmap 좌표 누적 → Spring 저장 및 조회 API 노출
+- [x] HuggingFace Spaces 배포
+
+### 향후 과제 (P3 / 최적화)
+- [ ] 인구통계 ID별 캐싱 (P3 — MiVOLO 연령·성별, DeepFace 감정)
 - [ ] 모델 ONNX 변환 (CPU 추론 속도 최적화)
-- [ ] HuggingFace Spaces 배포
+- [ ] 영상 업로드(multipart) 또는 URL 다운로드 방식 통합

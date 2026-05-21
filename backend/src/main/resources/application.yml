@@ -1,27 +1,23 @@
 server:
-  port: 8080
+  port: ${PORT:8080}                          # Render가 PORT 주입
 
 spring:
-  jackson:
-    property-naming-strategy: SNAKE_CASE     # FastAPI의 snake_case 자동 매핑
   application:
     name: retaillens-backend
   datasource:
-    url: jdbc:postgresql://localhost:5432/retaillens
-    username: retaillens
-    password: retaillens_dev
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/retaillens}
+    username: ${SPRING_DATASOURCE_USERNAME:retaillens}
+    password: ${SPRING_DATASOURCE_PASSWORD:retaillens_dev}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate     # 스키마는 SQL로 직접 만들었으니 validate (Hibernate 자동생성 X)
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+      ddl-auto: validate
     show-sql: true
+  jackson:
+    property-naming-strategy: SNAKE_CASE
 
 ai-server:
-  url: http://localhost:8000   # FastAPI 주소
+  url: ${AI_SERVER_URL:http://localhost:8000}
 
 logging:
   level:

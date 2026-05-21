@@ -93,6 +93,27 @@ cd backend
 | POST | `/jobs` | 영상 분석 Job 생성 + FastAPI에 분석 의뢰 (202 Accepted) |
 | GET | `/jobs/{id}` | Job 진행 상태·결과 조회 (React polling용) |
 | POST | `/api/callback` | FastAPI에서 분석 완료 시 호출하는 웹훅 |
+| GET | `/jobs/{id}/heatmap` | 해당 Job의 heatmap JSON (32×18 그리드) 조회 |
+| GET | `/stats` | 전체 visitors 집계 KPI (8종) |
+| GET | `/stats/{jobId}` | 특정 Job의 집계 KPI |
+
+
+## 집계 KPI (GET /stats)
+
+trajectory 분석 결과를 비즈니스 인사이트로 집계:
+
+| KPI | 설명 |
+|---|---|
+| visitor_count | 총 방문자 수 |
+| avg_dwell_sec | 평균 체류 시간 |
+| estimated_conversion_rate | 추정 구매 전환율 |
+| no_purchase_count | 미구매 추정 방문자 수 |
+| checkout_visit_count | ROI(관심구역) 방문자 수 |
+| avg_checkout_dwell_sec | 평균 ROI 체류 시간 |
+| age_distribution | 추정 연령대 분포 (P3에서 채워짐) |
+| gender_distribution | 추정 성별 분포 (P3에서 채워짐) |
+
+> 인구통계 2종은 현재 unknown. Phase 3에서 MiVOLO 통합 시 실제 값으로 채워짐.
 
 ### 호출 예시 (Walking Skeleton)
 

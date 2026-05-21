@@ -68,3 +68,4 @@
   - `progress` / `gender` / `age_band` CHECK 제약 추가
   - GIN 인덱스 제거 → `estimated_purchase` 인덱스로 교체
   - `estimated_emotion` 제외 (P3 옵션화)
+  - jobs 테이블에 `heatmap JSONB` 컬럼 추가 (Job 단위 heatmap 저장)
