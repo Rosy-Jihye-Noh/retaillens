@@ -10,7 +10,7 @@ pinned: false
 
 # RetailLens — AI Server (FastAPI)
 
-무인매장 Vision Analytics의 추론 모듈. 업로드된 mp4 영상을 YOLOv8 + BoT-SORT로 사람 탐지·추적하고, Virtual Line Crossing·ROI Dwell·Estimated Purchase·Heatmap 등 비즈니스 로직을 적용한 결과를 SpringBoot 백엔드에 비동기 콜백으로 push한다.
+무인매장 Vision Analytics의 추론 모듈. 업로드된 mp4 영상을 YOLOv8 + BoT-SORT로 사람 탐지·추적하고, Virtual Line Crossing·ROI Dwell·Estimated Purchase·Heatmap 등 비즈니스 로직을 적용한 결과를 SpringBoot 백엔드에 비동기 콜백으로 push.
 
 ## 기술 스택
 
