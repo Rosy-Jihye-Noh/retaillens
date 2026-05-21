@@ -12,10 +12,13 @@
 > Free 티어라 첫 접속 시 cold start (1~5분) 발생.
 
 ## 아키텍처 (폴리글랏 + 비동기 콜백)
-[React/Vercel] ──multipart──▶ [Spring/Render] ──▶ [FastAPI/HF Spaces]
-│  ◀──웹훅 콜백──  YOLOv8 + BoT-SORT
-▼
-[PostgreSQL/Render]
+```mermaid
+flowchart LR
+    A[React / Vercel] -->|mp4 multipart| B[Spring / Render]
+    B -->|analyze 요청| C["FastAPI / HF Spaces(YOLOv8 + BoT-SORT)"]
+    C -.웹훅 콜백.-> B
+    B --> D[(PostgreSQL / Render)]
+```
 
 - **비동기 콜백**: FastAPI가 202 즉시 응답 + BackgroundTasks 분석 → Spring 웹훅으로 결과 push (무료 티어 504 타임아웃 회피)
 - **Trajectory → Insight**: Virtual Line Crossing(입장), ROI Dwell(체류), Estimated Purchase(룰베이스), Heatmap
