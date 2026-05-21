@@ -5,6 +5,15 @@
 - **DB**: `retaillens` / **User**: `retaillens` / **Password**: `retaillens_dev` (로컬 개발용)
 - **Extension**: `uuid-ossp`
 
+
+## 배포 환경
+
+| 환경 | 위치 | 비고 |
+|---|---|---|
+| 로컬 개발 | localhost:5432 | DBeaver 직접 연결 |
+| 클라우드 | Render PostgreSQL (Singapore) | Free 티어, 30일 만료, SSL 필수(외부 접속 시 `sslmode=require`) |
+
+> 로컬·클라우드 모두 동일한 `db/schema.sql`로 스키마 적용.
 ---
 
 ## 테이블 1: `jobs` — 영상 분석 작업 단위
@@ -68,4 +77,5 @@
   - `progress` / `gender` / `age_band` CHECK 제약 추가
   - GIN 인덱스 제거 → `estimated_purchase` 인덱스로 교체
   - `estimated_emotion` 제외 (P3 옵션화)
-  - jobs 테이블에 `heatmap JSONB` 컬럼 추가 (Job 단위 heatmap 저장)
+
+- **v1.1 (2026-05-21)**: jobs 테이블에 `heatmap JSONB` 컬럼 추가. Render PostgreSQL(클라우드) 배포.

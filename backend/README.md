@@ -141,3 +141,24 @@ curl http://localhost:8080/jobs/<id>
 - **`RestClient`에 `SimpleClientHttpRequestFactory` 사용**: JDK 21 기본 HttpClient의 자동 HTTP/2 upgrade가 uvicorn(HTTP/1.1 only)과 충돌해 body가 누락되는 문제 회피
 - **DTO 기반 직렬화**: `Map<String, String>` 대신 명시적 DTO를 사용해 Spring Jackson의 SNAKE_CASE 자동 매핑을 활용
 - **`trajectory`는 JSONB로 매핑**: Hibernate 6.x의 `@JdbcTypeCode(SqlTypes.JSON)` 사용해 List<Map>을 PostgreSQL JSONB와 직접 매핑
+
+## 배포 (Render)
+
+Docker 기반으로 Render Web Service에 배포.
+
+- 배포 URL: https://retaillens-backend.onrender.com
+- Runtime: Docker (`backend/Dockerfile`, multi-stage 빌드)
+- Plan: Free (512MB, `-Xmx400m` JVM 제한), Region: Singapore
+- Cold start: 첫 요청 시 30초~1분 (sleep 후 wake)
+
+### 환경변수 (Render에서 주입)
+
+| Key | 설명 |
+|---|---|
+| `PORT` | Render 자동 주입 (server.port가 참조) |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://<internal-host>:5432/retaillens` |
+| `SPRING_DATASOURCE_USERNAME` | DB 사용자 |
+| `SPRING_DATASOURCE_PASSWORD` | DB 비밀번호 |
+| `AI_SERVER_URL` | HuggingFace Spaces ai-server 주소 |
+
+> 로컬 실행 시엔 application.yml의 기본값(localhost) 사용. 환경변수가 있으면 override.
