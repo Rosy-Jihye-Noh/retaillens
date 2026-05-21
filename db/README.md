@@ -1,4 +1,4 @@
-# RetailLens — Database Schema (v1.0)
+# RetailLens — Database Schema (v1.1)
 
 ## Database
 - **DBMS**: PostgreSQL 16+
@@ -31,6 +31,7 @@
 | `created_at` | TIMESTAMPTZ | Job 등록 시각 (사용자 업로드 시점) |
 | `started_at` | TIMESTAMPTZ | FastAPI 분석 시작 시각 |
 | `finished_at` | TIMESTAMPTZ | 분석 완료 시각 |
+| heatmap | JSONB | 방문자 동선 heatmap (32×18 그리드 다운샘플). NULL 가능 |
 
 **Constraints**: `chk_status`(4개 값), `chk_progress`(0~100)
 **Indexes**: `idx_jobs_status`, `idx_jobs_created_at`
@@ -64,9 +65,8 @@
 
 - **익명성**: 얼굴 원본·개인정보 미저장. `visitor_id`는 영상 내부에서만 유효
 - **추정 표기**: 성별·연령·구매전환은 모두 `estimated_` 접두로 명시 (사실 아닌 추론)
-- **`estimated_purchase` 룰**: `visited_checkout=TRUE AND checkout_dwell_sec ≥ 10 AND 이후 exit direction → TRUE`
+- **`estimated_purchase` 룰**: `visited_checkout=TRUE AND checkout_dwell_sec ≥ checkout_min_dwell_sec(기본 3초, 조정 가능) AND 이후 exit direction → TRUE`
 - **`trajectory` 샘플링**: FastAPI에서 1초당 1점만 저장 (60초 영상 × 5명 ≈ 12KB)
-- **`estimated_emotion`**: Phase 3 experimental 옵션 — 필요 시 `ALTER TABLE visitors ADD COLUMN estimated_emotion VARCHAR(20);`
 
 ---
 
