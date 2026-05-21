@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const API = 'http://localhost:8080';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const COLORS = ['#4caf50', '#f44336', '#2196f3', '#ff9800', '#9c27b0'];
 
 function Card({ label, value }) {

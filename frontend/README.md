@@ -1,16 +1,30 @@
-# React + Vite
+# RetailLens — Frontend (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+매장 영상 업로드 → 분석 진행 표시 → 통계·차트·heatmap 시각화 대시보드.
 
-Currently, two official plugins are available:
+## 기술 스택
+| 영역 | 도구 |
+|---|---|
+| Framework | React 19 + Vite |
+| Charts | Recharts (Pie/Bar) |
+| Heatmap | CSS Grid 직접 렌더 |
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 주요 기능
+- mp4 업로드 (multipart) → `POST /jobs`
+- Job 진행 polling (3초 간격, `GET /jobs/{id}`)
+- 완료 시 통계 6종 카드 + 구매/미구매 파이 + 연령 분포 바 + 동선 heatmap
 
-## React Compiler
+## 환경변수
+| Key | 설명 |
+|---|---|
+| `VITE_API_URL` | backend 주소 (로컬: localhost:8080 / 배포: Render URL) |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 실행
+```bash
+npm install
+npm run dev      # http://localhost:5173
+```
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 배포
+Vercel (Root Directory: `frontend`, env: `VITE_API_URL`).
+배포 URL: https://retaillens-xxx.vercel.app
