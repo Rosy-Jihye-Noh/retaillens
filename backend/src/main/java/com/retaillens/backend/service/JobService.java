@@ -14,6 +14,12 @@ import org.springframework.web.client.RestClient;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.MediaType;
+
 @Service @RequiredArgsConstructor @Slf4j
 public class JobService {
     private final JobRepository jobRepo;
@@ -22,32 +28,35 @@ public class JobService {
     @Value("${ai-server.url}") private String aiServerUrl;
 
     @Transactional
-    public Job createAndDispatch(JobCreateRequest req) {
-        Job job = Job.builder()
-                .videoFilename(req.getVideoFilename())
-                .recordedAt(req.getRecordedAt())
-                .status("QUEUED").progress((short) 0)
-                .build();
-        job = jobRepo.save(job);
+public Job createAndDispatch(MultipartFile video, OffsetDateTime recordedAt) {
+    Job job = Job.builder()
+            .videoFilename(video.getOriginalFilename())
+            .videoSizeByte(video.getSize())
+            .recordedAt(recordedAt)
+            .status("QUEUED").progress((short) 0)
+            .build();
+    job = jobRepo.save(job);
 
-        try {
-            AnalyzeRequest body = new AnalyzeRequest(
-                job.getId().toString(),
-                req.getVideoUrl() == null ? "" : req.getVideoUrl()
-            );
-            log.info("Dispatching to AI: {}", body);    // 디버깅용
-            restClient.post().uri(aiServerUrl + "/analyze")
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .body(body).retrieve().toBodilessEntity();
-            job.setStatus("RUNNING");
-            job.setStartedAt(OffsetDateTime.now());
-            log.info("AI server dispatched: jobId={}", job.getId());
-        } catch (Exception e) {
-            job.setStatus("FAILED");
-            job.setErrorMessage("AI dispatch failed: " + e.getMessage());
-            log.error("AI server call failed", e);
-        }
-        return jobRepo.save(job);
+    try {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("job_id", job.getId().toString());
+        ByteArrayResource res = new ByteArrayResource(video.getBytes()) {
+            @Override public String getFilename() { return video.getOriginalFilename(); }
+        };
+        parts.add("video", res);
+
+        restClient.post().uri(aiServerUrl + "/analyze")
+                  .contentType(MediaType.MULTIPART_FORM_DATA)
+                  .body(parts).retrieve().toBodilessEntity();
+        job.setStatus("RUNNING");
+        job.setStartedAt(OffsetDateTime.now());
+        log.info("AI server dispatched: jobId={}", job.getId());
+    } catch (Exception e) {
+        job.setStatus("FAILED");
+        job.setErrorMessage("AI dispatch failed: " + e.getMessage());
+        log.error("AI server call failed", e);
+    }
+    return jobRepo.save(job);
     }
 
     @Transactional

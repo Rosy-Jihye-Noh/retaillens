@@ -9,17 +9,24 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 import java.util.Map;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.OffsetDateTime;
 
 @RestController @RequestMapping("/jobs") @RequiredArgsConstructor
 public class JobController {
     private final JobService jobService;
     private final JobRepository jobRepo;
 
-    @PostMapping
-    public ResponseEntity<JobResponse> create(@RequestBody JobCreateRequest req) {
-        Job j = jobService.createAndDispatch(req);
-        return ResponseEntity.accepted().body(JobResponse.from(j));
-    }
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<JobResponse> create(
+        @RequestParam("video") MultipartFile video,
+        @RequestParam(value = "recordedAt", required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime recordedAt) {
+    Job j = jobService.createAndDispatch(video, recordedAt);
+    return ResponseEntity.accepted().body(JobResponse.from(j));
+}
 
     @GetMapping("/{id}")
     public ResponseEntity<JobResponse> get(@PathVariable UUID id) {

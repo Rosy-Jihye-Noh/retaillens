@@ -3,7 +3,8 @@ import asyncio
 from typing import Optional, List
 
 import httpx
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, UploadFile, File, Form
+import tempfile, shutil, os
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -62,29 +63,39 @@ def health():
     return {"status": "ok", "service": "retaillens-ai-server"}
 
 @app.post("/analyze", response_model=AnalyzeResponse, status_code=202)
-async def analyze(req: AnalyzeRequest, background_tasks: BackgroundTasks):
-    background_tasks.add_task(run_analysis, req.job_id, req.video_url)
-    return AnalyzeResponse(job_id=req.job_id)
+async def analyze(
+    background_tasks: BackgroundTasks,
+    job_id: str = Form(...),
+    video: UploadFile = File(...),
+):
+    # 업로드된 영상을 임시 파일로 저장
+    suffix = os.path.splitext(video.filename or "")[1] or ".mp4"
+    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    shutil.copyfileobj(video.file, tmp)
+    tmp.close()
+    background_tasks.add_task(run_analysis, job_id, tmp.name)
+    return AnalyzeResponse(job_id=job_id)
 
 # ===== Background Job  =====
-async def run_analysis(job_id: str, video_url: str):
+async def run_analysis(job_id: str, video_path: str):
     try:
         from analyzer import analyze_video
         import asyncio
-
         loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(None, analyze_video, video_url)
-
+        result = await loop.run_in_executor(None, analyze_video, video_path)
         visitors = [VisitorResult(**v) for v in result['visitors']]
         heatmap  = HeatmapData(**result['heatmap'])
-        payload = CallbackPayload(
-            job_id=job_id, status="DONE",
-            visitors=visitors, heatmap=heatmap,
-        )
+        payload = CallbackPayload(job_id=job_id, status="DONE",
+                                  visitors=visitors, heatmap=heatmap)
         await send_callback(payload)
     except Exception as e:
         payload = CallbackPayload(job_id=job_id, status="FAILED", error_message=str(e))
         await send_callback(payload)
+    finally:
+        try:
+            os.remove(video_path)        # 분석 후 영상 즉시 삭제 (개인정보 원칙)
+        except OSError:
+            pass
 
 async def send_callback(payload: CallbackPayload):
     async with httpx.AsyncClient(timeout=10) as client:
