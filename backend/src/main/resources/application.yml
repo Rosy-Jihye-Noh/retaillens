@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE     # FastAPI의 snake_case 자동 매핑
+  application:
+    name: retaillens-backend
+  datasource:
+    url: jdbc:postgresql://localhost:5432/retaillens
+    username: retaillens
+    password: retaillens_dev
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate     # 스키마는 SQL로 직접 만들었으니 validate (Hibernate 자동생성 X)
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+
+ai-server:
+  url: http://localhost:8000   # FastAPI 주소
+
+logging:
+  level:
+    com.retaillens: DEBUG
