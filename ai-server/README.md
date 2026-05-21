@@ -34,7 +34,8 @@ flowchart TD
     D -->|완료| E[POST Spring /api/callback<br/>visitors + heatmap JSON]
 ```
 
-Render/HF 무료 티어의 30~120초 HTTP 타임아웃을 회피하기 위해 동기 long-running 응답을 제거. 영상 분석은 BackgroundTasks에서 진행되고, 완료 시 웹훅으로 결과를 push한다.
+Render/HF 무료 티어의 30~120초 HTTP 타임아웃을 회피하기 위해 동기 long-running 응답을 제거.
+영상 분석은 BackgroundTasks에서 진행되고, 완료 시 웹훅으로 결과를 push.
 
 ## 폴더 구조
 
