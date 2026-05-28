@@ -6,7 +6,7 @@ import cv2
 from ultralytics import YOLO
 from collections import defaultdict
 
-VIDEO_PATH = 'notebooks/experiments/test_video.mp4'
+VIDEO_PATH = 'notebooks/experiments/test_video3.mp4'
 
 # === ROI/Line 시각화 (첫 프레임에 그려서 저장) ===
 def preview_roi(video_path, line_y, roi, out='notebooks/experiments/roi_preview.jpg'):
@@ -33,16 +33,13 @@ print(f"Video: {WIDTH}x{HEIGHT}, {FPS:.1f} FPS, {DURATION:.1f}s, {TOTAL_FRAMES} 
 CONF_THRESHOLD    = 0.5                  # confidence ≥ 0.5만 — 마네킹 false positive 제거
 MIN_TRAJECTORY    = 10                   # 10 프레임 미만은 노이즈로 간주
 
-ENTRY_LINE_Y      = HEIGHT // 2          # 가상 입장 라인 (가로선) — 임시: 화면 세로 중앙
-                                          # outside(위) → inside(아래) = enter
+ENTRY_LINE_Y      = 180                  # 입구 중앙 y좌표 # outside(위) → inside(아래) = enter
 
-CHECKOUT_ROI = {                          # 계산대 ROI (직사각형) — 임시 좌표
-    'x_min': int(WIDTH  * 0.25),    # 사람들이 자주 모이는 영역
-    'y_min': int(HEIGHT * 0.30),
-    'x_max': int(WIDTH  * 0.75),
-    'y_max': int(HEIGHT * 0.85),
+CHECKOUT_ROI = {             # 키오스크 영역 (사다리꼴 → 직사각형 근사)
+    'x_min': 888,  'y_min': 82,
+    'x_max': 1141, 'y_max': 471,
 }
-CHECKOUT_MIN_DWELL_SEC = 3         # 12초 영상이라 짧게
+CHECKOUT_MIN_DWELL_SEC = 3         # 10초 영상이라 짧게
 
 preview_roi(VIDEO_PATH, ENTRY_LINE_Y, CHECKOUT_ROI)
 
@@ -82,6 +79,9 @@ for tid, pts in trajectories.items():
 
     first_y, last_y = pts[0]['y'], pts[-1]['y']
     crossed_enter = first_y < ENTRY_LINE_Y and last_y >= ENTRY_LINE_Y
+    # 영상 시작 0.5초 이내 등장한 ID는 "이미 매장 안에 있던 사람"으로 간주
+    if pts[0]['t'] < 0.5:
+        crossed_enter = False
     crossed_exit  = first_y >= ENTRY_LINE_Y and last_y < ENTRY_LINE_Y
 
     dwell = pts[-1]['t'] - pts[0]['t']

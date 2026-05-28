@@ -7,6 +7,7 @@ from fastapi import FastAPI, BackgroundTasks, UploadFile, File, Form
 import tempfile, shutil, os
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from typing import Optional
 
 # ===== Config =====
 SPRING_CALLBACK_URL = os.getenv("SPRING_CALLBACK_URL", "http://localhost:8080/api/callback")
@@ -67,24 +68,36 @@ async def analyze(
     background_tasks: BackgroundTasks,
     job_id: str = Form(...),
     video: UploadFile = File(...),
+    roi_x_min: Optional[int] = Form(None),
+    roi_y_min: Optional[int] = Form(None),
+    roi_x_max: Optional[int] = Form(None),
+    roi_y_max: Optional[int] = Form(None),
 ):
-    # 업로드된 영상을 임시 파일로 저장
     suffix = os.path.splitext(video.filename or "")[1] or ".mp4"
     tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
     shutil.copyfileobj(video.file, tmp)
     tmp.close()
-    background_tasks.add_task(run_analysis, job_id, tmp.name)
+
+    roi_abs = None
+    if all(v is not None for v in (roi_x_min, roi_y_min, roi_x_max, roi_y_max)):
+        roi_abs = {'x_min': roi_x_min, 'y_min': roi_y_min,
+                   'x_max': roi_x_max, 'y_max': roi_y_max}
+
+    background_tasks.add_task(run_analysis, job_id, tmp.name, roi_abs)
     return AnalyzeResponse(job_id=job_id)
 
 # ===== Background Job  =====
-async def run_analysis(job_id: str, video_path: str):
-    print(f"[Analysis START] job_id={job_id}")
+async def run_analysis(job_id: str, video_path: str, roi_abs=None):
+    print(f"[Analysis START] job_id={job_id}, roi_abs={roi_abs}", flush=True)
     try:
         from analyzer import analyze_video
         import asyncio
         loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(None, analyze_video, video_path)
-        print(f"[Analysis DONE] job_id={job_id}, visitors={len(result['visitors'])}")
+        result = await loop.run_in_executor(
+            None,
+            lambda: analyze_video(video_path, roi_abs=roi_abs)
+        )
+        print(f"[Analysis DONE] job_id={job_id}, visitors={len(result['visitors'])}", flush=True)
         visitors = [VisitorResult(**v) for v in result['visitors']]
         heatmap  = HeatmapData(**result['heatmap'])
         payload = CallbackPayload(job_id=job_id, status="DONE",

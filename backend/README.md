@@ -108,14 +108,15 @@ cd backend
 
 ## API 명세
 
-| Method | Endpoint               | 설명                                                   |
-| ------ | ---------------------- | ------------------------------------------------------ |
-| POST   | `/jobs`              | 영상(mp4) 업로드 → Job 생성 + FastAPI 분석 의뢰 (202) |
-| GET    | `/jobs/{id}`         | Job 진행 상태·결과 조회 (React polling)               |
-| GET    | `/jobs/{id}/heatmap` | 해당 Job의 heatmap JSON (32×18)                       |
-| POST   | `/api/callback`      | FastAPI 분석 완료 웹훅 수신                            |
-| GET    | `/stats`             | 전체 visitors 집계 KPI                                 |
-| GET    | `/stats/{jobId}`     | 특정 Job의 집계 KPI                                    |
+| Method | Endpoint               | 설명                                                                         |
+| ------ | ---------------------- | ---------------------------------------------------------------------------- |
+| POST   | `/jobs`              | 영상(mp4) 업로드 → Job 생성 + FastAPI 분석 의뢰 (202)                       |
+| GET    | `/jobs/{id}`         | Job 진행 상태·결과 조회 (React polling)                                     |
+| GET    | `/jobs/{id}/heatmap` | 해당 Job의 heatmap JSON (32×18)                                             |
+| POST   | `/api/callback`      | FastAPI 분석 완료 웹훅 수신                                                  |
+| GET    | `/stats`             | 전체 visitors 집계 KPI                                                       |
+| GET    | `/stats/{jobId}`     | 특정 Job의 집계 KPI                                                          |
+| POST   | `/jobs`              | 영상(mp4) + (optional) ROI 좌표 업로드 → Job 생성 + FastAPI 분석 의뢰 (202) |
 
 ### 집계 KPI (GET /stats)
 
@@ -136,8 +137,9 @@ cd backend
 
 ```bash
 curl -X POST http://localhost:8080/jobs \
-  -F "video=@../notebooks/experiments/test_video.mp4" \
-  -F "recordedAt=2026-05-21T14:00:00+09:00"
+  -F "video=@../notebooks/experiments/test_video3.mp4" \
+  -F "roi_x_min=888" -F "roi_y_min=82" \
+  -F "roi_x_max=1141" -F "roi_y_max=471"
 # → 202 Accepted + JSON (id, status=RUNNING)
 
 curl http://localhost:8080/jobs/<id>        # status=DONE, progress=100
@@ -186,6 +188,7 @@ Docker 기반 Render Web Service 배포.
 - [X] visitors / heatmap 저장, KPI 집계 API
 - [X] multipart 영상 업로드 + CORS
 - [X] Render 배포
+- [X] ROI 좌표를 ai-server로 multipart 전달
 
 ### 향후 과제
 

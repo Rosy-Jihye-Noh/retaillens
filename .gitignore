@@ -248,7 +248,7 @@ mlruns/
 *.onnx
 runs/
 notebooks/experiments/yolo_test_result.jpg
-notebooks/experiments/test_video.mp4
+notebooks/experiments/*.mp4
 notebooks/experiments/bus.jpg
 bus.jpg
 roi_preview.jpg

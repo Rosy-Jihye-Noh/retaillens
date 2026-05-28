@@ -19,9 +19,10 @@ def _get_model() -> YOLO:
 def analyze_video(
     video_path: str,
     conf_threshold: float = 0.5,
-    min_trajectory: int = 10,
+    min_trajectory: int = 5,
     entry_line_ratio: float = 0.5,
     roi_ratio: Optional[Dict[str, float]] = None,
+    roi_abs: Optional[Dict[str, int]] = None, 
     checkout_min_dwell_sec: float = 3.0,
     heatmap_grid: tuple = (32, 18),
 ) -> Dict:
@@ -36,14 +37,26 @@ def analyze_video(
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps    = cap.get(cv2.CAP_PROP_FPS) or 25.0
     cap.release()
-    print(f"[analyze] meta: {width}x{height}, {fps}fps", flush=True)
 
-    roi = {k: int((width if 'x' in k else height) * v) for k, v in roi_ratio.items()}
+    # ROI 결정: 절대값(roi_abs) 우선, 없으면 비율(roi_ratio)
+    if roi_abs is not None:
+        roi = roi_abs
+    else:
+        roi = {
+            'x_min': int(width  * roi_ratio['x_min']),
+            'y_min': int(height * roi_ratio['y_min']),
+            'x_max': int(width  * roi_ratio['x_max']),
+            'y_max': int(height * roi_ratio['y_max']),
+        }
+    print(f"[analyze] ROI: {roi}", flush=True)
+
+    print(f"[analyze] meta: {width}x{height}, {fps}fps", flush=True)
 
     model = _get_model()
     print(f"[analyze] model loaded, tracking start", flush=True)
     TARGET_FPS = 5                                  # 초당 5프레임 처리 (트래킹 안정성 균형점)
     vid_stride = max(1, round(fps / TARGET_FPS))    # 30fps → stride 6
+    effective_fps = fps / vid_stride
     results = model.track(
         source=video_path, classes=[0], tracker='botsort.yaml',
         conf=conf_threshold, persist=True, save=False, verbose=False, stream=True, vid_stride=vid_stride, imgsz=480,
@@ -77,7 +90,7 @@ def analyze_video(
         if len(pts) < min_trajectory:
             continue
         dwell = pts[-1]['t'] - pts[0]['t']
-        ckdwell = roi_frames[tid] / fps
+        ckdwell = roi_frames[tid] / effective_fps 
         visited_checkout = ckdwell > 0
         estimated_purchase = visited_checkout and ckdwell >= checkout_min_dwell_sec
 

@@ -28,7 +28,9 @@ public class JobService {
     @Value("${ai-server.url}") private String aiServerUrl;
 
     @Transactional
-public Job createAndDispatch(MultipartFile video, OffsetDateTime recordedAt) {
+    public Job createAndDispatch(MultipartFile video, OffsetDateTime recordedAt,
+                              Integer roiXMin, Integer roiYMin,
+                              Integer roiXMax, Integer roiYMax) {
     Job job = Job.builder()
             .videoFilename(video.getOriginalFilename())
             .videoSizeByte(video.getSize())
@@ -45,19 +47,26 @@ public Job createAndDispatch(MultipartFile video, OffsetDateTime recordedAt) {
         };
         parts.add("video", res);
 
+        // ROI 좌표 — 있을 때만 전달 (하위 호환)
+        if (roiXMin != null) parts.add("roi_x_min", roiXMin.toString());
+        if (roiYMin != null) parts.add("roi_y_min", roiYMin.toString());
+        if (roiXMax != null) parts.add("roi_x_max", roiXMax.toString());
+        if (roiYMax != null) parts.add("roi_y_max", roiYMax.toString());
+
         restClient.post().uri(aiServerUrl + "/analyze")
                   .contentType(MediaType.MULTIPART_FORM_DATA)
                   .body(parts).retrieve().toBodilessEntity();
         job.setStatus("RUNNING");
         job.setStartedAt(OffsetDateTime.now());
-        log.info("AI server dispatched: jobId={}", job.getId());
+        log.info("AI dispatched: jobId={}, roi=[{},{},{},{}]",
+                 job.getId(), roiXMin, roiYMin, roiXMax, roiYMax);
     } catch (Exception e) {
         job.setStatus("FAILED");
         job.setErrorMessage("AI dispatch failed: " + e.getMessage());
         log.error("AI server call failed", e);
     }
     return jobRepo.save(job);
-    }
+}
 
     @Transactional
     public void handleCallback(CallbackPayload p) {

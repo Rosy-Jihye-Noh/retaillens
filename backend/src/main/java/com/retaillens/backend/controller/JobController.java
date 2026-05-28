@@ -23,8 +23,12 @@ public class JobController {
     public ResponseEntity<JobResponse> create(
         @RequestParam("video") MultipartFile video,
         @RequestParam(value = "recordedAt", required = false)
-        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime recordedAt) {
-    Job j = jobService.createAndDispatch(video, recordedAt);
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime recordedAt,
+        @RequestParam(value = "roi_x_min", required = false) Integer roiXMin,
+        @RequestParam(value = "roi_y_min", required = false) Integer roiYMin,
+        @RequestParam(value = "roi_x_max", required = false) Integer roiXMax,
+        @RequestParam(value = "roi_y_max", required = false) Integer roiYMax) {
+    Job j = jobService.createAndDispatch(video, recordedAt, roiXMin, roiYMin, roiXMax, roiYMax);
     return ResponseEntity.accepted().body(JobResponse.from(j));
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import RoiPicker from './RoiPicker';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const COLORS = ['#4caf50', '#f44336', '#2196f3', '#ff9800', '#9c27b0'];
@@ -44,6 +45,7 @@ export default function App() {
   const [heatmap, setHeatmap] = useState(null);
   const [uploading, setUploading] = useState(false);
   const pollRef = useRef(null);
+  const [roi, setRoi] = useState(null);
 
   const startPolling = (jobId) => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -69,6 +71,12 @@ export default function App() {
     const fd = new FormData();
     fd.append('video', file);
     if (recordedAt) fd.append('recordedAt', recordedAt + ':00+09:00');
+    if (roi) {
+      fd.append('roi_x_min', roi.x_min);
+      fd.append('roi_y_min', roi.y_min);
+      fd.append('roi_x_max', roi.x_max);
+      fd.append('roi_y_max', roi.y_max);
+    }
     try {
       const res = await fetch(`${API}/jobs`, { method: 'POST', body: fd });
       const data = await res.json();
@@ -96,6 +104,7 @@ export default function App() {
 
       <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 24 }}>
         <input type="file" accept="video/mp4" onChange={e => setFile(e.target.files[0])} />
+        <RoiPicker file={file} onRoiChange={setRoi} />
         <div style={{ marginTop: 12 }}>
           <label>촬영 시각: </label>
           <input type="datetime-local" value={recordedAt}
