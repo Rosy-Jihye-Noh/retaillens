@@ -14,6 +14,7 @@ COPY . .
 
 # HF Spaces 기본 포트는 7860
 ENV PORT=7860
+ENV PYTHONUNBUFFERED=1
 EXPOSE 7860
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]

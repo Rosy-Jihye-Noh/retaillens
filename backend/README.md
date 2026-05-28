@@ -4,15 +4,15 @@
 
 ## 기술 스택
 
-| 영역 | 도구 | 버전 |
-|---|---|---|
-| Language | Java | 21 (Temurin) |
-| Framework | Spring Boot | 3.5.14 |
-| Build | Gradle | 8.x (wrapper) |
-| ORM | Spring Data JPA + Hibernate | 6.6.x |
-| DB | PostgreSQL | 17 |
-| HTTP Client | Spring RestClient | - |
-| Util | Lombok, Validation | - |
+| 영역        | 도구                        | 버전          |
+| ----------- | --------------------------- | ------------- |
+| Language    | Java                        | 21 (Temurin)  |
+| Framework   | Spring Boot                 | 3.5.14        |
+| Build       | Gradle                      | 8.x (wrapper) |
+| ORM         | Spring Data JPA + Hibernate | 6.6.x         |
+| DB          | PostgreSQL                  | 17            |
+| HTTP Client | Spring RestClient           | -             |
+| Util        | Lombok, Validation          | -             |
 
 ## 아키텍처 — 비동기 콜백 패턴
 
@@ -66,6 +66,7 @@ backend/
 ## 환경 설정
 
 ### 사전 요구사항
+
 - JDK 21 (Temurin)
 - PostgreSQL 17 (로컬: `retaillens` DB / `retaillens` user)
 - DB 스키마 적용 (`db/schema.sql`)
@@ -107,27 +108,27 @@ cd backend
 
 ## API 명세
 
-| Method | Endpoint | 설명 |
-|---|---|---|
-| POST | `/jobs` | 영상(mp4) 업로드 → Job 생성 + FastAPI 분석 의뢰 (202) |
-| GET | `/jobs/{id}` | Job 진행 상태·결과 조회 (React polling) |
-| GET | `/jobs/{id}/heatmap` | 해당 Job의 heatmap JSON (32×18) |
-| POST | `/api/callback` | FastAPI 분석 완료 웹훅 수신 |
-| GET | `/stats` | 전체 visitors 집계 KPI |
-| GET | `/stats/{jobId}` | 특정 Job의 집계 KPI |
+| Method | Endpoint               | 설명                                                   |
+| ------ | ---------------------- | ------------------------------------------------------ |
+| POST   | `/jobs`              | 영상(mp4) 업로드 → Job 생성 + FastAPI 분석 의뢰 (202) |
+| GET    | `/jobs/{id}`         | Job 진행 상태·결과 조회 (React polling)               |
+| GET    | `/jobs/{id}/heatmap` | 해당 Job의 heatmap JSON (32×18)                       |
+| POST   | `/api/callback`      | FastAPI 분석 완료 웹훅 수신                            |
+| GET    | `/stats`             | 전체 visitors 집계 KPI                                 |
+| GET    | `/stats/{jobId}`     | 특정 Job의 집계 KPI                                    |
 
 ### 집계 KPI (GET /stats)
 
-| KPI | 설명 |
-|---|---|
-| visitor_count | 총 방문자 수 |
-| avg_dwell_sec | 평균 체류 시간 |
-| estimated_conversion_rate | 추정 구매 전환율 |
-| no_purchase_count | 미구매 추정 방문자 수 |
-| checkout_visit_count | ROI(관심구역) 방문자 수 |
-| avg_checkout_dwell_sec | 평균 ROI 체류 시간 |
-| age_distribution | 추정 연령대 분포 (P3에서 채워짐) |
-| gender_distribution | 추정 성별 분포 (P3에서 채워짐) |
+| KPI                       | 설명                             |
+| ------------------------- | -------------------------------- |
+| visitor_count             | 총 방문자 수                     |
+| avg_dwell_sec             | 평균 체류 시간                   |
+| estimated_conversion_rate | 추정 구매 전환율                 |
+| no_purchase_count         | 미구매 추정 방문자 수            |
+| checkout_visit_count      | ROI(관심구역) 방문자 수          |
+| avg_checkout_dwell_sec    | 평균 ROI 체류 시간               |
+| age_distribution          | 추정 연령대 분포 (P3에서 채워짐) |
+| gender_distribution       | 추정 성별 분포 (P3에서 채워짐)   |
 
 > 인구통계 2종은 현재 unknown. P3에서 MiVOLO 통합 시 실제 값으로 채워짐.
 
@@ -169,23 +170,25 @@ Docker 기반 Render Web Service 배포.
 
 ### 환경변수 (Render 주입)
 
-| Key | 설명 |
-|---|---|
-| `PORT` | Render 자동 주입 |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://<internal-host>:5432/retaillens` |
-| `SPRING_DATASOURCE_USERNAME` | DB 사용자 |
-| `SPRING_DATASOURCE_PASSWORD` | DB 비밀번호 |
-| `AI_SERVER_URL` | HuggingFace Spaces ai-server 주소 |
+| Key                            | 설명                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `PORT`                       | Render 자동 주입                                                                                             |
+| `SPRING_DATASOURCE_URL`      | `jdbc:postgresql://<internal-host>:5432/retaillens`                                                        |
+| `SPRING_DATASOURCE_USERNAME` | DB 사용자                                                                                                    |
+| `SPRING_DATASOURCE_PASSWORD` | DB 비밀번호                                                                                                  |
+| `AI_SERVER_URL`              | HuggingFace Spaces ai-server 주소<br />* 이 값이 잘못되면 backend가 ai-server를 호출하지 못해 Job이 FAILED됨 |
 
 ## 진행 현황 및 로드맵
 
 ### 완료
-- [x] Job 관리 + 비동기 콜백 (FastAPI ↔ Spring 웹훅)
-- [x] visitors / heatmap 저장, KPI 집계 API
-- [x] multipart 영상 업로드 + CORS
-- [x] Render 배포
+
+- [X] Job 관리 + 비동기 콜백 (FastAPI ↔ Spring 웹훅)
+- [X] visitors / heatmap 저장, KPI 집계 API
+- [X] multipart 영상 업로드 + CORS
+- [X] Render 배포
 
 ### 향후 과제
+
 - [ ] Spring AI + Gemini RAG 자연어 질의 (P3)
 - [ ] 시간대별·인구통계별 stats 집계 고도화 (`recorded_at` 활용)
 - [ ] CORS origin을 Vercel 도메인으로 제한 (보안 강화)

@@ -28,6 +28,7 @@ def analyze_video(
     if roi_ratio is None:
         roi_ratio = {'x_min': 0.25, 'y_min': 0.30, 'x_max': 0.75, 'y_max': 0.85}
 
+    print(f"[analyze] open video: {video_path}", flush=True)
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise FileNotFoundError(f"Cannot open video: {video_path}")
@@ -35,13 +36,17 @@ def analyze_video(
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps    = cap.get(cv2.CAP_PROP_FPS) or 25.0
     cap.release()
+    print(f"[analyze] meta: {width}x{height}, {fps}fps", flush=True)
 
     roi = {k: int((width if 'x' in k else height) * v) for k, v in roi_ratio.items()}
 
     model = _get_model()
+    print(f"[analyze] model loaded, tracking start", flush=True)
+    TARGET_FPS = 5                                  # 초당 5프레임 처리 (트래킹 안정성 균형점)
+    vid_stride = max(1, round(fps / TARGET_FPS))    # 30fps → stride 6
     results = model.track(
         source=video_path, classes=[0], tracker='botsort.yaml',
-        conf=conf_threshold, persist=True, save=False, verbose=False, stream=True,
+        conf=conf_threshold, persist=True, save=False, verbose=False, stream=True, vid_stride=vid_stride, imgsz=480,
     )
 
     trajectories: dict = defaultdict(list)
@@ -49,18 +54,22 @@ def analyze_video(
     heatmap_acc = np.zeros((height, width), dtype=np.float32)
 
     for frame_idx, result in enumerate(results):
+        if frame_idx % 20 == 0:
+            print(f"[analyze] frame {frame_idx}", flush=True)
         if result.boxes.id is None:
             continue
         for box, tid in zip(result.boxes.xywh, result.boxes.id):
             x, y, _, _ = box.tolist()
             tid = int(tid)
-            t = round(frame_idx / fps, 2)
+            t = round(frame_idx * vid_stride / fps, 2)
             trajectories[tid].append({'x': round(x), 'y': round(y), 't': t})
             cx, cy = int(x), int(y)
             if 0 <= cx < width and 0 <= cy < height:
                 heatmap_acc[cy, cx] += 1
             if roi['x_min'] <= x <= roi['x_max'] and roi['y_min'] <= y <= roi['y_max']:
                 roi_frames[tid] += 1
+
+    print(f"[analyze] tracking done, raw_ids={len(trajectories)}", flush=True)
 
     # === visitors 분석 ===
     visitors = []

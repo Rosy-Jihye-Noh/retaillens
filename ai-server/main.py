@@ -78,24 +78,27 @@ async def analyze(
 
 # ===== Background Job  =====
 async def run_analysis(job_id: str, video_path: str):
+    print(f"[Analysis START] job_id={job_id}")
     try:
         from analyzer import analyze_video
         import asyncio
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(None, analyze_video, video_path)
+        print(f"[Analysis DONE] job_id={job_id}, visitors={len(result['visitors'])}")
         visitors = [VisitorResult(**v) for v in result['visitors']]
         heatmap  = HeatmapData(**result['heatmap'])
         payload = CallbackPayload(job_id=job_id, status="DONE",
                                   visitors=visitors, heatmap=heatmap)
         await send_callback(payload)
     except Exception as e:
+        import traceback
+        print(f"[Analysis ERROR] job_id={job_id}: {e}")
+        traceback.print_exc()
         payload = CallbackPayload(job_id=job_id, status="FAILED", error_message=str(e))
         await send_callback(payload)
     finally:
-        try:
-            os.remove(video_path)        # 분석 후 영상 즉시 삭제 (개인정보 원칙)
-        except OSError:
-            pass
+        try: os.remove(video_path)
+        except OSError: pass
 
 async def send_callback(payload: CallbackPayload):
     async with httpx.AsyncClient(timeout=10) as client:
