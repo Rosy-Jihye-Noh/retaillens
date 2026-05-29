@@ -13,4 +13,6 @@ public class StatsResponse {
     private double avgCheckoutDwellSec;
     private Map<String, Long> ageDistribution;
     private Map<String, Long> genderDistribution;
+    private Map<Integer, Long> hourlyVisitorCount; 
+    private Map<Integer, Long> hourlyPurchaseCount;    
 }

@@ -8,10 +8,18 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import com.retaillens.backend.repository.JobRepository;
+import com.retaillens.backend.entity.Job;
+import java.time.OffsetDateTime;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Service @RequiredArgsConstructor
 public class StatsService {
     private final VisitorRepository visitorRepo;
+    private final JobRepository jobRepo;
 
     public StatsResponse aggregate(UUID jobId) {
         List<Visitor> visitors = (jobId == null)
@@ -47,6 +55,26 @@ public class StatsService {
                 v -> Optional.ofNullable(v.getEstimatedGender()).orElse("unknown"),
                 Collectors.counting()));
 
+        // 시간대별 집계 (recorded_at + enter_at_sec → 실제 시각)
+        java.util.Set<UUID> jobIds = visitors.stream()
+                .map(Visitor::getJobId).collect(java.util.stream.Collectors.toSet());
+        Map<UUID, OffsetDateTime> recordedAtMap = jobRepo.findAllById(jobIds).stream()
+                .filter(j -> j.getRecordedAt() != null)
+                .collect(java.util.stream.Collectors.toMap(Job::getId, Job::getRecordedAt));
+
+        Map<Integer, Long> hourlyV = new java.util.TreeMap<>();
+        Map<Integer, Long> hourlyP = new java.util.TreeMap<>();
+        for (Visitor v : visitors) {
+                OffsetDateTime rec = recordedAtMap.get(v.getJobId());
+                if (rec == null || v.getEnterAtSec() == null) continue;
+                OffsetDateTime actual = rec.plusSeconds(v.getEnterAtSec().longValue());
+                int hour = actual.atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul")).getHour();
+                hourlyV.merge(hour, 1L, Long::sum);
+                if (Boolean.TRUE.equals(v.getEstimatedPurchase())) {
+                        hourlyP.merge(hour, 1L, Long::sum);
+                }
+        }
+
         return StatsResponse.builder()
                 .visitorCount(count)
                 .avgDwellSec(round(avgDwell, 2))
@@ -56,6 +84,8 @@ public class StatsService {
                 .avgCheckoutDwellSec(round(avgCkDwell, 2))
                 .ageDistribution(ageDist)
                 .genderDistribution(genderDist)
+                .hourlyVisitorCount(hourlyV)
+                .hourlyPurchaseCount(hourlyP)
                 .build();
     }
 

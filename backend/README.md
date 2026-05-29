@@ -120,18 +120,18 @@ cd backend
 
 ### 집계 KPI (GET /stats)
 
-| KPI                       | 설명                             |
-| ------------------------- | -------------------------------- |
-| visitor_count             | 총 방문자 수                     |
-| avg_dwell_sec             | 평균 체류 시간                   |
-| estimated_conversion_rate | 추정 구매 전환율                 |
-| no_purchase_count         | 미구매 추정 방문자 수            |
-| checkout_visit_count      | ROI(관심구역) 방문자 수          |
-| avg_checkout_dwell_sec    | 평균 ROI 체류 시간               |
-| age_distribution          | 추정 연령대 분포 (P3에서 채워짐) |
-| gender_distribution       | 추정 성별 분포 (P3에서 채워짐)   |
-
-> 인구통계 2종은 현재 unknown. P3에서 MiVOLO 통합 시 실제 값으로 채워짐.
+| KPI                       | 설명                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| visitor_count             | 총 방문자 수                                                                         |
+| avg_dwell_sec             | 평균 체류 시간                                                                       |
+| estimated_conversion_rate | 추정 구매 전환율                                                                     |
+| no_purchase_count         | 미구매 추정 방문자 수                                                                |
+| checkout_visit_count      | ROI(관심구역) 방문자 수                                                              |
+| avg_checkout_dwell_sec    | 평균 ROI 체류 시간                                                                   |
+| age_distribution          | 추정 연령대 분포 (P3에서 채워짐)                                                     |
+| gender_distribution       | 추정 성별 분포 (P3에서 채워짐)                                                       |
+| hourly_visitor_count      | 시간대별(0~23시) 방문자 수.**`recorded_at + enter_at_sec`** → KST hour 기준 |
+| hourly_purchase_count     | 시간대별 구매 추정자 수                                                              |
 
 ### 호출 예시 (multipart)
 
@@ -160,6 +160,7 @@ curl http://localhost:8080/stats/<id>       # KPI 집계
 - **CORS 글로벌 설정**(`WebConfig`): React/Vercel 프론트엔드 호출 허용
 - **DTO 기반 콜백 수신**: Spring Jackson SNAKE_CASE로 FastAPI의 snake_case JSON 자동 매핑
 - **JSONB 매핑**: Hibernate 6.x `@JdbcTypeCode(SqlTypes.JSON)`로 trajectory·heatmap을 PostgreSQL JSONB와 직접 매핑
+- **OffsetDateTime KST 변환**: PostgreSQL JDBC가 OffsetDateTime을 UTC로 정규화하여 반환하므로, 시간대 집계 시 `atZoneSameInstant(ZoneId.of("Asia/Seoul"))`로 명시 변환. `hibernate.jdbc.time_zone` 설정은 LocalDateTime에만 적용돼 OffsetDateTime엔 무효
 
 ## 배포 (Render)
 
@@ -189,9 +190,9 @@ Docker 기반 Render Web Service 배포.
 - [X] multipart 영상 업로드 + CORS
 - [X] Render 배포
 - [X] ROI 좌표를 ai-server로 multipart 전달
+- [X] 시간대별 stats 집계 (**`recorded_at`** + KST 변환)
 
 ### 향후 과제
 
 - [ ] Spring AI + Gemini RAG 자연어 질의 (P3)
-- [ ] 시간대별·인구통계별 stats 집계 고도화 (`recorded_at` 활용)
 - [ ] CORS origin을 Vercel 도메인으로 제한 (보안 강화)

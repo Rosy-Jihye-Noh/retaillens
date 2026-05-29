@@ -96,6 +96,22 @@ export default function App() {
     { name: '미구매 추정', value: stats.no_purchase_count },
   ] : [];
   const ageData = stats ? Object.entries(stats.age_distribution).map(([k, v]) => ({ name: k, count: v })) : [];
+  const genderData = stats
+  ? Object.entries(stats.gender_distribution).map(([k, v]) => ({ name: k, count: v }))
+  : [];
+
+  
+  const hourlyData = stats ? (() => {
+    const all = new Set([
+      ...Object.keys(stats.hourly_visitor_count || {}),
+      ...Object.keys(stats.hourly_purchase_count || {}),
+    ]);
+    return [...all].sort((a, b) => Number(a) - Number(b)).map(h => ({
+      hour: `${h}시`,
+      visitors: stats.hourly_visitor_count?.[h] || 0,
+      purchases: stats.hourly_purchase_count?.[h] || 0,
+    }));
+  })() : [];
 
   return (
     <div style={{ maxWidth: 720, margin: '40px auto', fontFamily: 'sans-serif' }}>
@@ -131,7 +147,7 @@ export default function App() {
             <Card label="평균 관심구역 체류" value={`${stats.avg_checkout_dwell_sec}s`} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 24 }}>
             <div>
               <h3>구매 추정 비율</h3>
               <ResponsiveContainer width="100%" height={220}>
@@ -152,7 +168,31 @@ export default function App() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            <div>
+              <h3>성별 분포</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={genderData} dataKey="count" nameKey="name" outerRadius={70} label>
+                    {genderData.map((_, i) => <Cell key={i} fill={COLORS[(i + 2) % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip /><Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+
+          {hourlyData.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <h3>시간대별 방문·구매 추정</h3>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={hourlyData}>
+                <XAxis dataKey="hour" /><YAxis allowDecimals={false} /><Tooltip /><Legend />
+                <Bar dataKey="visitors" name="방문자" fill="#2196f3" />
+                <Bar dataKey="purchases" name="구매 추정" fill="#4caf50" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
           <div style={{ marginTop: 24 }}><Heatmap data={heatmap} /></div>
         </div>

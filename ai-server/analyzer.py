@@ -7,6 +7,32 @@ from ultralytics import YOLO
 from collections import defaultdict
 from typing import List, Dict, Optional
 import numpy as np
+from insightface.app import FaceAnalysis
+
+_face_app: Optional[FaceAnalysis] = None
+
+def _get_face_app() -> FaceAnalysis:
+    global _face_app
+    if _face_app is None:
+        _face_app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])
+        _face_app.prepare(ctx_id=-1, det_size=(640, 640))
+    return _face_app
+
+def _age_to_band(age: int) -> str:
+    if age < 13: return 'child'
+    if age < 20: return 'teen'
+    if age < 35: return 'young_adult'
+    if age < 55: return 'middle'
+    return 'senior'
+
+def _summarize_demo(samples):
+    if not samples:
+        return None, None
+    avg_age = sum(s[0] for s in samples) / len(samples)
+    age_band = _age_to_band(int(avg_age))
+    genders = [s[1] for s in samples]
+    gender = max(set(genders), key=genders.count)   # 최빈값
+    return age_band, gender
 
 _model: Optional[YOLO] = None
 
@@ -65,6 +91,8 @@ def analyze_video(
     trajectories: dict = defaultdict(list)
     roi_frames: dict   = defaultdict(int)
     heatmap_acc = np.zeros((height, width), dtype=np.float32)
+    demo_samples = defaultdict(list)        # ID -> [(age, gender), ...]
+    DEMO_SAMPLE_LIMIT = 5                   # ID당 최대 5회 추론
 
     for frame_idx, result in enumerate(results):
         if frame_idx % 20 == 0:
@@ -72,27 +100,48 @@ def analyze_video(
         if result.boxes.id is None:
             continue
         for box, tid in zip(result.boxes.xywh, result.boxes.id):
-            x, y, _, _ = box.tolist()
+            x, y, w, h = box.tolist()
             tid = int(tid)
             t = round(frame_idx * vid_stride / fps, 2)
             trajectories[tid].append({'x': round(x), 'y': round(y), 't': t})
+
             cx, cy = int(x), int(y)
             if 0 <= cx < width and 0 <= cy < height:
                 heatmap_acc[cy, cx] += 1
             if roi['x_min'] <= x <= roi['x_max'] and roi['y_min'] <= y <= roi['y_max']:
                 roi_frames[tid] += 1
 
-    print(f"[analyze] tracking done, raw_ids={len(trajectories)}", flush=True)
+            # ✅ ID당 5회까지만 인구통계 추론 (PRD §6.5 ID 캐싱)
+            if len(demo_samples[tid]) < DEMO_SAMPLE_LIMIT:
+                x1 = max(0, int(x - w/2)); y1 = max(0, int(y - h/2))
+                x2 = min(width, int(x + w/2)); y2 = min(height, int(y + h/2))
+                crop = result.orig_img[y1:y2, x1:x2]
+                if crop.size > 0:
+                    try:
+                        faces = _get_face_app().get(crop)
+                        if faces:
+                            f = faces[0]
+                            gender = 'male' if f.sex == 'M' else 'female'
+                            demo_samples[tid].append((int(f.age), gender))
+                    except Exception:
+                        pass    # 얼굴 못 잡으면 조용히 skip
+
+    print(f"[analyze] tracking done, raw_ids={len(trajectories)}, "
+      f"demo_detected={sum(1 for v in demo_samples.values() if v)}", flush=True)
 
     # === visitors 분석 ===
     visitors = []
     for tid, pts in trajectories.items():
         if len(pts) < min_trajectory:
             continue
+
         dwell = pts[-1]['t'] - pts[0]['t']
-        ckdwell = roi_frames[tid] / effective_fps 
+        ckdwell = roi_frames[tid] / effective_fps
         visited_checkout = ckdwell > 0
         estimated_purchase = visited_checkout and ckdwell >= checkout_min_dwell_sec
+
+        # ✅ 인구통계 집계
+        age_band, gender = _summarize_demo(demo_samples.get(tid, []))
 
         sampled, last_t = [], -1.0
         for pt in pts:
@@ -101,8 +150,8 @@ def analyze_video(
 
         visitors.append({
             'visitor_id': tid,
-            'estimated_age_band': None,
-            'estimated_gender':   None,
+            'estimated_age_band': age_band or 'unknown',     # ← unknown 처리
+            'estimated_gender':   gender or 'unknown',        # ← unknown 처리
             'enter_at_sec': pts[0]['t'],
             'exit_at_sec':  pts[-1]['t'],
             'dwell_sec':    round(dwell, 2),
